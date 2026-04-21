@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Loader2, CheckCircle2, AlertTriangle, Play } from 'lucide-react';
 import { CANONICAL_FIELDS } from '@/lib/constants';
 import { toast } from 'sonner';
+import { getRowsFromExtractionResult } from '@/lib/importFileUtils';
 
 function calculatePriorityScore(claim) {
   let score = 0;
@@ -92,14 +93,13 @@ export default function ImportProcessor({ importRecord, onComplete }) {
 
     setProgress(60);
 
-    if (extracted.status !== 'success' || !extracted.output?.rows) {
+    const rows = getRowsFromExtractionResult(extracted);
+    if (!rows.length) {
       await base44.entities.Import.update(importRecord.id, { status: 'failed', error_summary: [{ row: 0, field: 'file', message: 'Failed to extract data' }] });
       setResult({ success: 0, errors: 1 });
       setProcessing(false);
       return;
     }
-
-    const rows = extracted.output.rows;
     let success = 0;
     let errors = 0;
     const errorSummary = [];
