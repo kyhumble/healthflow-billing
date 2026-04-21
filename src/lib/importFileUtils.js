@@ -38,10 +38,38 @@ export function getRowsFromExtractionResult(result) {
   ];
 
   for (const candidate of candidates) {
-    if (Array.isArray(candidate)) return candidate;
+    const normalized = normalizeExtractedRows(candidate);
+    if (normalized.length) return normalized;
   }
 
   return [];
+}
+
+function normalizeExtractedRows(candidate) {
+  if (!Array.isArray(candidate)) return [];
+  if (candidate.length === 0) return [];
+
+  if (
+    candidate.length === 1 &&
+    candidate[0] &&
+    typeof candidate[0] === 'object' &&
+    !Array.isArray(candidate[0]) &&
+    Array.isArray(candidate[0].rows)
+  ) {
+    return normalizeExtractedRows(candidate[0].rows);
+  }
+
+  if (
+    candidate.every(
+      row => row && typeof row === 'object' && !Array.isArray(row) && Array.isArray(row.rows)
+    )
+  ) {
+    return candidate
+      .flatMap(row => normalizeExtractedRows(row.rows))
+      .filter(row => row != null);
+  }
+
+  return candidate;
 }
 
 export function extractHeadersAndSample(rows) {
@@ -51,29 +79,24 @@ export function extractHeadersAndSample(rows) {
 
   const objectRows = rows.filter(row => row && typeof row === 'object' && !Array.isArray(row));
   if (objectRows.length > 0) {
-    const seenRaw = new Set();
+    const seenNormalized = new Set();
     const headers = [];
-    const normalizedHeaders = [];
+    const sampleRow = {};
+    const firstRow = objectRows[0] || {};
     objectRows.forEach(row => {
       Object.keys(row).forEach((key) => {
         const rawHeader = String(key);
         const normalized = normalizeHeader(rawHeader);
-        if (!normalized || seenRaw.has(rawHeader)) return;
-        seenRaw.add(rawHeader);
-        headers.push(rawHeader);
-        normalizedHeaders.push(normalized);
+        if (!normalized || seenNormalized.has(normalized)) return;
+        seenNormalized.add(normalized);
+        headers.push(normalized);
+        if (Object.prototype.hasOwnProperty.call(firstRow, key)) {
+          sampleRow[normalized] = firstRow[key];
+        }
       });
     });
 
-    const firstRow = objectRows[0] || {};
-    const sampleRow = {};
-    headers.forEach((header) => {
-      if (Object.prototype.hasOwnProperty.call(firstRow, header)) {
-        sampleRow[header] = firstRow[header];
-      }
-    });
-
-    return { headers, normalizedHeaders, sampleRow, rowCount: objectRows.length };
+    return { headers, normalizedHeaders: headers, sampleRow, rowCount: objectRows.length };
   }
 
   const firstRow = rows[0];
