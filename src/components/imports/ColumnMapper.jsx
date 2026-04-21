@@ -1,161 +1,40 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CANONICAL_FIELDS } from '@/lib/constants';
-import {
-  Loader2, Wand2, ArrowRight, CheckCircle2, AlertTriangle,
-  XCircle, Info, Hash, Type, Calendar, ChevronRight
-} from 'lucide-react';
+import { Loader2, Wand2, ChevronRight, CheckCircle2, XCircle, AlertTriangle, RotateCcw, Hash, Type, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-// Fields required for a valid import
-const REQUIRED_FIELDS = ['patient_name'];
-const RECOMMENDED_FIELDS = ['dos', 'payer_name', 'balance', 'status', 'claim_number'];
+const REQUIRED = ['patient_name'];
+const RECOMMENDED = ['dos', 'payer_name', 'balance', 'status', 'claim_number'];
 
-const TYPE_ICONS = {
-  string: Type,
-  number: Hash,
-  date: Calendar,
+const TYPE_META = {
+  string: { icon: Type, color: 'text-blue-500', bg: 'bg-blue-50' },
+  number: { icon: Hash, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+  date:   { icon: Calendar, color: 'text-purple-500', bg: 'bg-purple-50' },
 };
-
-function FieldTypeIcon({ type }) {
-  const Icon = TYPE_ICONS[type] || Type;
-  return <Icon className="w-3 h-3" />;
-}
-
-function MappingRow({ header, sampleValue, mappedTo, usedKeys, onChange }) {
-  const isDuplicate = mappedTo && usedKeys.filter(k => k === mappedTo).length > 1;
-  const mappedField = CANONICAL_FIELDS.find(f => f.key === mappedTo);
-
-  return (
-    <div className={cn(
-      'grid grid-cols-[1fr_32px_1fr] items-center gap-2 px-4 py-2.5 rounded-lg border transition-colors',
-      mappedTo && !isDuplicate ? 'border-primary/20 bg-primary/[0.03]' : 'border-border bg-card',
-      isDuplicate && 'border-amber-300 bg-amber-50/50'
-    )}>
-      {/* Source column */}
-      <div className="min-w-0">
-        <p className="text-sm font-medium truncate" title={header}>{header}</p>
-        {sampleValue != null && sampleValue !== '' && (
-          <p className="text-[11px] text-muted-foreground truncate mt-0.5" title={String(sampleValue)}>
-            e.g. <span className="font-mono">{String(sampleValue)}</span>
-          </p>
-        )}
-      </div>
-
-      {/* Arrow */}
-      <ArrowRight className={cn('w-4 h-4 flex-shrink-0', mappedTo ? 'text-primary' : 'text-muted-foreground/30')} />
-
-      {/* Target field selector */}
-      <div className="min-w-0">
-        <Select value={mappedTo || 'skip'} onValueChange={v => onChange(v === 'skip' ? undefined : v)}>
-          <SelectTrigger className={cn(
-            'h-8 text-xs w-full',
-            mappedTo && !isDuplicate && 'border-primary/30 text-foreground',
-            isDuplicate && 'border-amber-400'
-          )}>
-            <SelectValue placeholder="Skip this column" />
-          </SelectTrigger>
-          <SelectContent className="max-h-64">
-            <SelectItem value="skip">
-              <span className="text-muted-foreground">— Skip this column —</span>
-            </SelectItem>
-            {CANONICAL_FIELDS.map(f => (
-              <SelectItem key={f.key} value={f.key}>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground"><FieldTypeIcon type={f.type} /></span>
-                  <span>{f.label}</span>
-                  {REQUIRED_FIELDS.includes(f.key) && (
-                    <span className="text-[10px] text-red-500 font-semibold">required</span>
-                  )}
-                  {RECOMMENDED_FIELDS.includes(f.key) && (
-                    <span className="text-[10px] text-amber-500 font-semibold">recommended</span>
-                  )}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {isDuplicate && (
-          <p className="text-[10px] text-amber-600 mt-0.5 flex items-center gap-1">
-            <AlertTriangle className="w-2.5 h-2.5" /> Mapped to same field as another column
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function CoverageSummary({ mapping }) {
-  const mappedKeys = Object.values(mapping).filter(Boolean);
-  const requiredMet = REQUIRED_FIELDS.every(k => mappedKeys.includes(k));
-  const recommendedCount = RECOMMENDED_FIELDS.filter(k => mappedKeys.includes(k)).length;
-  const totalMapped = mappedKeys.length;
-
-  return (
-    <div className="grid grid-cols-3 gap-3">
-      <div className={cn(
-        'rounded-lg border p-3 text-center',
-        requiredMet ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50'
-      )}>
-        {requiredMet
-          ? <CheckCircle2 className="w-4 h-4 text-emerald-500 mx-auto mb-1" />
-          : <XCircle className="w-4 h-4 text-red-500 mx-auto mb-1" />
-        }
-        <p className="text-xs font-semibold">{requiredMet ? 'Required Met' : 'Missing Required'}</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">patient_name</p>
-      </div>
-      <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
-        <p className="text-lg font-bold text-primary leading-none mb-1">{recommendedCount}/{RECOMMENDED_FIELDS.length}</p>
-        <p className="text-xs font-semibold">Recommended</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">key fields mapped</p>
-      </div>
-      <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
-        <p className="text-lg font-bold text-foreground leading-none mb-1">{totalMapped}</p>
-        <p className="text-xs font-semibold">Total Mapped</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">columns included</p>
-      </div>
-    </div>
-  );
-}
-
-function UnmappedRequiredAlert({ mapping }) {
-  const mappedKeys = Object.values(mapping).filter(Boolean);
-  const missing = REQUIRED_FIELDS.filter(k => !mappedKeys.includes(k));
-  if (missing.length === 0) return null;
-  return (
-    <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 text-sm text-red-700">
-      <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-      <div>
-        <span className="font-semibold">Required fields not mapped: </span>
-        {missing.map(k => CANONICAL_FIELDS.find(f => f.key === k)?.label).join(', ')}
-      </div>
-    </div>
-  );
-}
 
 export default function ColumnMapper({ importRecord, onMapped }) {
   const [headers, setHeaders] = useState([]);
   const [sampleRow, setSampleRow] = useState({});
-  const [mapping, setMapping] = useState({});
+  const [mapping, setMapping] = useState({}); // canonical_key -> source_header
   const [loading, setLoading] = useState(true);
   const [autoMapping, setAutoMapping] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [selected, setSelected] = useState(null); // currently selected source header
 
   useEffect(() => {
-    const extractHeaders = async () => {
+    (async () => {
       setLoading(true);
       const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
         file_url: importRecord.file_url,
         json_schema: {
           type: 'object',
           properties: {
-            headers: { type: 'array', items: { type: 'string' }, description: 'All column header names from the file' },
-            sample_row: { type: 'object', description: 'The first data row as key-value pairs (header → value)' },
+            headers: { type: 'array', items: { type: 'string' }, description: 'All column header names' },
+            sample_row: { type: 'object', description: 'First data row as header→value pairs' },
             row_count: { type: 'number', description: 'Approximate number of data rows' },
           },
         },
@@ -166,155 +45,245 @@ export default function ColumnMapper({ importRecord, onMapped }) {
         await base44.entities.Import.update(importRecord.id, { row_count: result.output.row_count || 0 });
       }
       setLoading(false);
-    };
-    extractHeaders();
+    })();
   }, [importRecord]);
+
+  // Reverse mapping: source_header -> canonical_key
+  const reverseMapping = useMemo(() =>
+    Object.fromEntries(Object.entries(mapping).map(([k, v]) => [v, k])),
+    [mapping]
+  );
+
+  const mappedSourceHeaders = useMemo(() => new Set(Object.values(mapping)), [mapping]);
+  const mappedCanonicalKeys = useMemo(() => new Set(Object.keys(mapping)), [mapping]);
+
+  const assignMapping = (canonicalKey) => {
+    if (!selected) return;
+    setMapping(prev => {
+      const next = { ...prev };
+      // Remove any existing mapping to this source header
+      Object.keys(next).forEach(k => { if (next[k] === selected) delete next[k]; });
+      next[canonicalKey] = selected;
+      return next;
+    });
+    setSelected(null);
+  };
+
+  const removeMapping = (canonicalKey, e) => {
+    e.stopPropagation();
+    setMapping(prev => { const n = { ...prev }; delete n[canonicalKey]; return n; });
+  };
 
   const autoMap = async () => {
     setAutoMapping(true);
     const result = await base44.integrations.Core.InvokeLLM({
       prompt: `Map these spreadsheet column headers to canonical billing field keys.
-
 Headers: ${JSON.stringify(headers)}
-Sample row values: ${JSON.stringify(sampleRow)}
-
-Canonical fields (key → label): ${CANONICAL_FIELDS.map(f => `${f.key}: ${f.label}`).join(', ')}
-
-Return a mapping object where keys are the exact source headers and values are canonical field keys. Only include confident matches. Exclude headers that don't map.`,
+Sample values: ${JSON.stringify(sampleRow)}
+Canonical fields (key: label): ${CANONICAL_FIELDS.map(f => `${f.key}: ${f.label}`).join(', ')}
+Return a mapping object where keys are canonical field keys and values are the matching source header name. Only include confident matches.`,
       response_json_schema: {
         type: 'object',
         properties: {
-          mapping: { type: 'object', description: 'Source header → canonical field key' },
+          mapping: { type: 'object', description: 'canonical_key → source_header_name' },
         },
       },
     });
     setAutoMapping(false);
     if (result?.mapping) {
-      setMapping(result.mapping);
-      const count = Object.values(result.mapping).filter(Boolean).length;
-      toast.success(`Auto-mapped ${count} columns`);
+      // Validate that mapped header values actually exist
+      const valid = Object.fromEntries(
+        Object.entries(result.mapping).filter(([, v]) => headers.includes(v))
+      );
+      setMapping(valid);
+      toast.success(`Auto-mapped ${Object.keys(valid).length} fields`);
     }
   };
 
-  const usedKeys = useMemo(() => Object.values(mapping).filter(Boolean), [mapping]);
-
-  const hasDuplicates = usedKeys.length !== new Set(usedKeys).size;
-  const canSave = REQUIRED_FIELDS.every(k => usedKeys.includes(k)) && !hasDuplicates;
+  const requiredMet = REQUIRED.every(k => mappedCanonicalKeys.has(k));
+  const canSave = requiredMet;
+  const unmappedHeaders = headers.filter(h => !mappedSourceHeaders.has(h));
 
   const handleSave = async () => {
     setSaving(true);
-    await base44.entities.Import.update(importRecord.id, {
-      column_mapping: mapping,
-      status: 'mapped',
-    });
+    // Convert to source→canonical for storage
+    const columnMapping = Object.fromEntries(Object.entries(mapping).map(([k, v]) => [v, k]));
+    await base44.entities.Import.update(importRecord.id, { column_mapping: columnMapping, status: 'mapped' });
     setSaving(false);
-    onMapped({ ...importRecord, column_mapping: mapping, status: 'mapped' });
-    toast.success('Column mapping saved');
+    onMapped({ ...importRecord, column_mapping: columnMapping, status: 'mapped' });
+    toast.success('Mapping saved');
   };
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-14 gap-3">
-          <Loader2 className="w-7 h-7 animate-spin text-primary" />
-          <div className="text-center">
-            <p className="text-sm font-medium">Analyzing file…</p>
-            <p className="text-xs text-muted-foreground mt-1">Reading headers and sample data from <strong>{importRecord.file_name}</strong></p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col items-center justify-center py-16 gap-3 border rounded-xl bg-card">
+        <Loader2 className="w-7 h-7 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Reading columns from <strong className="text-foreground">{importRecord.file_name}</strong>…</p>
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* Header card */}
-      <Card>
-        <CardHeader className="pb-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <CardTitle className="text-base font-semibold">Map Columns</CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">
-                Found <strong>{headers.length}</strong> columns in <strong>{importRecord.file_name}</strong>.
-                Match each to a database field, or skip columns you don't need.
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 flex-shrink-0"
-              onClick={autoMap}
-              disabled={autoMapping}
-            >
-              {autoMapping
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                : <Wand2 className="w-3.5 h-3.5" />
-              }
-              {autoMapping ? 'Mapping…' : 'Auto-Map with AI'}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <CoverageSummary mapping={mapping} />
-        </CardContent>
-      </Card>
 
-      {/* Mapping rows */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="grid grid-cols-[1fr_32px_1fr] items-center gap-2 px-0">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Your File Column</p>
-            <span />
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Database Field</p>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-1.5 pt-0">
-          {headers.map(header => (
-            <MappingRow
-              key={header}
-              header={header}
-              sampleValue={sampleRow[header]}
-              mappedTo={mapping[header]}
-              usedKeys={usedKeys}
-              onChange={v => setMapping(prev => {
-                const next = { ...prev };
-                if (v == null) delete next[header];
-                else next[header] = v;
-                return next;
-              })}
-            />
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Validation + save */}
-      <div className="space-y-3">
-        <UnmappedRequiredAlert mapping={mapping} />
-
-        {hasDuplicates && (
-          <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 text-sm text-amber-700">
-            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-            Resolve duplicate mappings before continuing.
-          </div>
-        )}
-
-        {!REQUIRED_FIELDS.every(k => usedKeys.includes(k)) || hasDuplicates ? null : (
-          <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2.5 text-sm text-emerald-700">
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-            Mapping looks good — ready to continue.
-          </div>
-        )}
-
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <Info className="w-3.5 h-3.5" />
-            {usedKeys.length} of {headers.length} columns will be imported
+      {/* Toolbar */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-semibold">Map Columns</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Select a source column, then click a target field to connect them.
           </p>
-          <Button onClick={handleSave} disabled={!canSave || saving} className="gap-2">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
-            {saving ? 'Saving…' : 'Confirm & Continue'}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => { setMapping({}); setSelected(null); }}>
+            <RotateCcw className="w-3 h-3" /> Reset
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={autoMap} disabled={autoMapping}>
+            {autoMapping ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+            {autoMapping ? 'Mapping…' : 'Auto-Map with AI'}
           </Button>
         </div>
+      </div>
+
+      {/* Main mapping canvas */}
+      <div className="grid grid-cols-[1fr_1fr] gap-4 border rounded-xl overflow-hidden bg-card">
+
+        {/* LEFT — Source columns */}
+        <div className="border-r">
+          <div className="px-4 py-2.5 border-b bg-muted/40">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your File Columns</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{headers.length} columns · {unmappedHeaders.length} unmapped</p>
+          </div>
+          <div className="divide-y max-h-[420px] overflow-y-auto">
+            {headers.map(header => {
+              const isMapped = mappedSourceHeaders.has(header);
+              const isSelected = selected === header;
+              const mappedTo = reverseMapping[header];
+              const targetField = CANONICAL_FIELDS.find(f => f.key === mappedTo);
+
+              return (
+                <button
+                  key={header}
+                  onClick={() => setSelected(isSelected ? null : header)}
+                  className={cn(
+                    'w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors text-sm',
+                    isSelected && 'bg-primary/10 border-l-2 border-primary',
+                    !isSelected && isMapped && 'bg-emerald-50/50',
+                    !isSelected && !isMapped && 'hover:bg-muted/30'
+                  )}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className={cn('font-medium truncate', isSelected && 'text-primary')}>{header}</p>
+                    {sampleRow[header] != null && sampleRow[header] !== '' && (
+                      <p className="text-[11px] text-muted-foreground truncate font-mono mt-0.5">
+                        {String(sampleRow[header])}
+                      </p>
+                    )}
+                  </div>
+                  {isMapped && targetField && (
+                    <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200 shrink-0">
+                      {targetField.label}
+                    </Badge>
+                  )}
+                  {!isMapped && (
+                    <span className="text-[10px] text-muted-foreground/50 shrink-0">unmapped</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* RIGHT — Target fields */}
+        <div>
+          <div className="px-4 py-2.5 border-b bg-muted/40">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Database Fields</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {selected
+                ? <span className="text-primary font-medium">← Click a field to map "{selected}"</span>
+                : `${mappedCanonicalKeys.size} of ${CANONICAL_FIELDS.length} fields mapped`
+              }
+            </p>
+          </div>
+          <div className="divide-y max-h-[420px] overflow-y-auto">
+            {CANONICAL_FIELDS.map(field => {
+              const isMapped = mappedCanonicalKeys.has(field.key);
+              const mappedHeader = mapping[field.key];
+              const isRequired = REQUIRED.includes(field.key);
+              const isRecommended = RECOMMENDED.includes(field.key);
+              const meta = TYPE_META[field.type] || TYPE_META.string;
+              const Icon = meta.icon;
+              const canConnect = !!selected;
+
+              return (
+                <button
+                  key={field.key}
+                  onClick={() => canConnect ? assignMapping(field.key) : undefined}
+                  disabled={!canConnect && !isMapped}
+                  className={cn(
+                    'w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors text-sm',
+                    canConnect && 'hover:bg-primary/5 cursor-pointer',
+                    canConnect && isMapped && 'hover:bg-amber-50',
+                    isMapped && !canConnect && 'bg-emerald-50/50',
+                    !canConnect && !isMapped && 'opacity-50'
+                  )}
+                >
+                  <div className={cn('w-6 h-6 rounded flex items-center justify-center flex-shrink-0', meta.bg)}>
+                    <Icon className={cn('w-3 h-3', meta.color)} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-medium">{field.label}</span>
+                      {isRequired && <span className="text-[10px] text-red-500 font-bold">REQUIRED</span>}
+                      {isRecommended && !isRequired && <span className="text-[10px] text-amber-500 font-semibold">recommended</span>}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground font-mono">{field.key}</p>
+                  </div>
+                  {isMapped ? (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200 max-w-[100px] truncate">
+                        {mappedHeader}
+                      </Badge>
+                      <button
+                        onClick={(e) => removeMapping(field.key, e)}
+                        className="w-4 h-4 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : canConnect ? (
+                    <span className="text-[10px] text-primary/60 shrink-0">click to map</span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Footer / validation */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          {requiredMet ? (
+            <div className="flex items-center gap-1.5 text-xs text-emerald-600">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Required fields mapped
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-xs text-red-600">
+              <XCircle className="w-3.5 h-3.5" />
+              Patient Name is required
+            </div>
+          )}
+          <div className="text-xs text-muted-foreground">
+            {mappedCanonicalKeys.size} fields · {unmappedHeaders.length} source columns skipped
+          </div>
+        </div>
+
+        <Button onClick={handleSave} disabled={!canSave || saving} className="gap-2">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
+          {saving ? 'Saving…' : 'Confirm & Continue'}
+        </Button>
       </div>
     </div>
   );
