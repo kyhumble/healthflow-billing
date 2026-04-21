@@ -64,7 +64,9 @@ function normalizeExtractedRows(candidate) {
       row => row && typeof row === 'object' && !Array.isArray(row) && Array.isArray(row.rows)
     )
   ) {
-    return candidate.flatMap(row => row.rows);
+    return candidate
+      .flatMap(row => normalizeExtractedRows(row.rows))
+      .filter(row => row != null);
   }
 
   return candidate;
