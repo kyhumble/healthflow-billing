@@ -5,6 +5,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import FileUploader from '@/components/imports/FileUploader';
 import ColumnMapper from '@/components/imports/ColumnMapper';
 import ImportProcessor from '@/components/imports/ImportProcessor';
+import ValidationPreview from '@/components/imports/ValidationPreview';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -22,7 +23,7 @@ const STATUS_COLORS = {
 
 export default function Imports() {
   const [activeImport, setActiveImport] = useState(null);
-  const [step, setStep] = useState('upload'); // upload, map, process
+  const [step, setStep] = useState('upload'); // upload, map, validate, process
   const queryClient = useQueryClient();
 
   const { data: imports = [] } = useQuery({
@@ -38,6 +39,10 @@ export default function Imports() {
 
   const handleMapped = (record) => {
     setActiveImport(record);
+    setStep('validate');
+  };
+
+  const handleValidated = () => {
     setStep('process');
   };
 
@@ -55,6 +60,13 @@ export default function Imports() {
       {/* Active import wizard */}
       {step === 'upload' && <FileUploader onUploaded={handleUploaded} />}
       {step === 'map' && activeImport && <ColumnMapper importRecord={activeImport} onMapped={handleMapped} />}
+      {step === 'validate' && activeImport && (
+        <ValidationPreview
+          importRecord={activeImport}
+          onBack={() => setStep('map')}
+          onValidated={handleValidated}
+        />
+      )}
       {step === 'process' && activeImport && <ImportProcessor importRecord={activeImport} onComplete={handleComplete} />}
 
       {/* Import history */}
