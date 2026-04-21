@@ -1,0 +1,91 @@
+{
+  "name": "Procedure",
+  "type": "object",
+  "properties": {
+    "claim_id": {
+      "type": "string",
+      "description": "ID of the related claim"
+    },
+    "procedure_type": {
+      "type": "string",
+      "description": "Type of procedure"
+    },
+    "wound_depth": {
+      "type": "string",
+      "enum": [
+        "skin",
+        "subcutaneous",
+        "muscle",
+        "bone"
+      ],
+      "description": "Wound depth for debridement"
+    },
+    "wound_size_sq_cm": {
+      "type": "number",
+      "description": "Wound size in square centimeters"
+    },
+    "time_minutes": {
+      "type": "number",
+      "description": "Time spent in minutes"
+    },
+    "distinct_wounds": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether wounds are distinct"
+    },
+    "suggested_cpt": {
+      "type": "string",
+      "description": "System-suggested CPT code"
+    },
+    "final_cpt": {
+      "type": "string",
+      "description": "Approved final CPT code"
+    },
+    "modifier_1": {
+      "type": "string",
+      "description": "First modifier"
+    },
+    "modifier_2": {
+      "type": "string",
+      "description": "Second modifier"
+    },
+    "requires_review": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether coding review is required"
+    },
+    "documentation_complete": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether documentation is complete"
+    },
+    "review_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending",
+      "description": "Coding review status"
+    },
+    "reviewer_email": {
+      "type": "string",
+      "description": "Email of reviewer"
+    },
+    "approval_note": {
+      "type": "string",
+      "description": "Note from reviewer on approval/rejection"
+    },
+    "suggestion_reasons": {
+      "type": "array",
+      "description": "Reasons for coding suggestion",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "claim_id"
+  ]
+}

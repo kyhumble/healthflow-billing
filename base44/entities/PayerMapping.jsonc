@@ -1,0 +1,36 @@
+{
+  "name": "PayerMapping",
+  "type": "object",
+  "properties": {
+    "source_name": {
+      "type": "string",
+      "description": "Original payer name from source"
+    },
+    "normalized_name": {
+      "type": "string",
+      "description": "Canonical payer name"
+    },
+    "payer_type": {
+      "type": "string",
+      "enum": [
+        "commercial",
+        "medicare",
+        "medicaid",
+        "tricare",
+        "workers_comp",
+        "self_pay",
+        "other"
+      ],
+      "description": "Payer category"
+    },
+    "speed_score": {
+      "type": "number",
+      "default": 3,
+      "description": "Payment speed score 1-5 (5=fastest)"
+    }
+  },
+  "required": [
+    "source_name",
+    "normalized_name"
+  ]
+}

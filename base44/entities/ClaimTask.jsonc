@@ -1,0 +1,71 @@
+{
+  "name": "ClaimTask",
+  "type": "object",
+  "properties": {
+    "claim_id": {
+      "type": "string",
+      "description": "ID of the related claim"
+    },
+    "queue_name": {
+      "type": "string",
+      "enum": [
+        "ready_to_bill",
+        "denials",
+        "follow_up",
+        "cob",
+        "documentation",
+        "posting_exceptions",
+        "provider_enrollment",
+        "internal_review"
+      ],
+      "description": "Queue this task belongs to"
+    },
+    "action_type": {
+      "type": "string",
+      "description": "What action needs to be taken"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "in_progress",
+        "completed",
+        "cancelled"
+      ],
+      "default": "open",
+      "description": "Task status"
+    },
+    "priority_score": {
+      "type": "number",
+      "default": 0,
+      "description": "Priority score"
+    },
+    "owner_email": {
+      "type": "string",
+      "description": "Assigned user email"
+    },
+    "owner_name": {
+      "type": "string",
+      "description": "Assigned user name"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Due date"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When task was completed"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Task notes"
+    }
+  },
+  "required": [
+    "claim_id",
+    "action_type",
+    "status"
+  ]
+}

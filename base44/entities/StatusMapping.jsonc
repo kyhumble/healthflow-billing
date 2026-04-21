@@ -1,0 +1,38 @@
+{
+  "name": "StatusMapping",
+  "type": "object",
+  "properties": {
+    "source_status": {
+      "type": "string",
+      "description": "Original status from source"
+    },
+    "normalized_status": {
+      "type": "string",
+      "enum": [
+        "IMPORTED",
+        "READY_TO_BILL",
+        "SUBMITTED",
+        "ACCEPTED",
+        "PROCESSING",
+        "DENIED",
+        "PAID",
+        "CLOSED",
+        "HELD",
+        "INTERNAL_REVIEW",
+        "NEEDS_INFO",
+        "COB_ISSUE",
+        "POSTING_EXCEPTION",
+        "PROVIDER_ISSUE"
+      ],
+      "description": "Canonical status"
+    },
+    "mapping_reason": {
+      "type": "string",
+      "description": "Why this mapping was chosen"
+    }
+  },
+  "required": [
+    "source_status",
+    "normalized_status"
+  ]
+}

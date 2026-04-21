@@ -1,0 +1,177 @@
+{
+  "name": "Claim",
+  "type": "object",
+  "properties": {
+    "patient_name": {
+      "type": "string",
+      "description": "Full name of the patient"
+    },
+    "patient_dob": {
+      "type": "string",
+      "format": "date",
+      "description": "Patient date of birth"
+    },
+    "mrn": {
+      "type": "string",
+      "description": "Medical record number"
+    },
+    "claim_number": {
+      "type": "string",
+      "description": "External claim number"
+    },
+    "dos": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of service"
+    },
+    "payer_name": {
+      "type": "string",
+      "description": "Normalized payer name"
+    },
+    "payer_type": {
+      "type": "string",
+      "enum": [
+        "commercial",
+        "medicare",
+        "medicaid",
+        "tricare",
+        "workers_comp",
+        "self_pay",
+        "other"
+      ],
+      "description": "Type of payer"
+    },
+    "provider_name": {
+      "type": "string",
+      "description": "Rendering provider name"
+    },
+    "provider_npi": {
+      "type": "string",
+      "description": "Provider NPI number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "IMPORTED",
+        "READY_TO_BILL",
+        "SUBMITTED",
+        "ACCEPTED",
+        "PROCESSING",
+        "DENIED",
+        "PAID",
+        "CLOSED",
+        "HELD",
+        "INTERNAL_REVIEW",
+        "NEEDS_INFO",
+        "COB_ISSUE",
+        "POSTING_EXCEPTION",
+        "PROVIDER_ISSUE"
+      ],
+      "default": "IMPORTED",
+      "description": "Canonical claim status"
+    },
+    "original_status": {
+      "type": "string",
+      "description": "Original status from source system"
+    },
+    "queue_name": {
+      "type": "string",
+      "enum": [
+        "ready_to_bill",
+        "denials",
+        "follow_up",
+        "cob",
+        "documentation",
+        "posting_exceptions",
+        "provider_enrollment",
+        "internal_review",
+        "unassigned"
+      ],
+      "default": "unassigned",
+      "description": "Current operational queue"
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "default": "medium",
+      "description": "Risk classification"
+    },
+    "priority_score": {
+      "type": "number",
+      "default": 0,
+      "description": "Calculated priority score (higher = more urgent)"
+    },
+    "balance": {
+      "type": "number",
+      "default": 0,
+      "description": "Outstanding balance"
+    },
+    "charges": {
+      "type": "number",
+      "default": 0,
+      "description": "Total charges"
+    },
+    "payments": {
+      "type": "number",
+      "default": 0,
+      "description": "Total payments received"
+    },
+    "adjustments": {
+      "type": "number",
+      "default": 0,
+      "description": "Total adjustments"
+    },
+    "denial_reason": {
+      "type": "string",
+      "description": "Reason for denial if applicable"
+    },
+    "last_action_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of last action taken"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Follow-up due date"
+    },
+    "owner_email": {
+      "type": "string",
+      "description": "Email of assigned user"
+    },
+    "owner_name": {
+      "type": "string",
+      "description": "Name of assigned user"
+    },
+    "place_of_service": {
+      "type": "string",
+      "description": "Place of service code"
+    },
+    "visit_type": {
+      "type": "string",
+      "description": "Type of visit"
+    },
+    "import_id": {
+      "type": "string",
+      "description": "ID of the import that created this claim"
+    },
+    "notes_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of notes on this claim"
+    },
+    "tasks_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of open tasks"
+    }
+  },
+  "required": [
+    "patient_name",
+    "status"
+  ]
+}

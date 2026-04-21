@@ -1,0 +1,39 @@
+{
+  "name": "ClaimNote",
+  "type": "object",
+  "properties": {
+    "claim_id": {
+      "type": "string",
+      "description": "ID of the related claim"
+    },
+    "note_type": {
+      "type": "string",
+      "enum": [
+        "general",
+        "follow_up",
+        "denial",
+        "coding",
+        "compliance",
+        "system"
+      ],
+      "default": "general",
+      "description": "Type of note"
+    },
+    "body": {
+      "type": "string",
+      "description": "Note content"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Name of note author"
+    },
+    "author_email": {
+      "type": "string",
+      "description": "Email of note author"
+    }
+  },
+  "required": [
+    "claim_id",
+    "body"
+  ]
+}

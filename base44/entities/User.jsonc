@@ -1,0 +1,27 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "billing_manager",
+        "biller",
+        "coding_reviewer",
+        "auditor",
+        "executive"
+      ],
+      "default": "biller",
+      "description": "User role in the system"
+    },
+    "department": {
+      "type": "string",
+      "description": "Department or team"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Contact phone number"
+    }
+  }
+}

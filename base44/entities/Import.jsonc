@@ -1,0 +1,84 @@
+{
+  "name": "Import",
+  "type": "object",
+  "properties": {
+    "file_name": {
+      "type": "string",
+      "description": "Original file name"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL of uploaded file"
+    },
+    "file_type": {
+      "type": "string",
+      "enum": [
+        "csv",
+        "xlsx"
+      ],
+      "description": "File type"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "uploaded",
+        "mapped",
+        "processing",
+        "processed",
+        "partially_processed",
+        "failed"
+      ],
+      "default": "uploaded",
+      "description": "Import status"
+    },
+    "column_mapping": {
+      "type": "object",
+      "description": "Mapping of source columns to canonical fields"
+    },
+    "row_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Total rows in file"
+    },
+    "processed_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Successfully processed rows"
+    },
+    "error_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Rows with errors"
+    },
+    "error_summary": {
+      "type": "array",
+      "description": "Summary of import errors",
+      "items": {
+        "type": "object",
+        "properties": {
+          "row": {
+            "type": "number"
+          },
+          "field": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "uploaded_by_name": {
+      "type": "string",
+      "description": "Name of uploader"
+    },
+    "uploaded_by_email": {
+      "type": "string",
+      "description": "Email of uploader"
+    }
+  },
+  "required": [
+    "file_name",
+    "status"
+  ]
+}

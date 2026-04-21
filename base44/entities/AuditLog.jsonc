@@ -1,0 +1,43 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "entity_type": {
+      "type": "string",
+      "description": "Type of entity changed"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "ID of entity changed"
+    },
+    "action": {
+      "type": "string",
+      "description": "Action performed"
+    },
+    "old_value": {
+      "type": "object",
+      "description": "Previous values"
+    },
+    "new_value": {
+      "type": "object",
+      "description": "New values"
+    },
+    "performed_by_email": {
+      "type": "string",
+      "description": "Email of user who performed action"
+    },
+    "performed_by_name": {
+      "type": "string",
+      "description": "Name of user who performed action"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Reason for change if provided"
+    }
+  },
+  "required": [
+    "entity_type",
+    "entity_id",
+    "action"
+  ]
+}
