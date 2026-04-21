@@ -46,42 +46,54 @@ export function getRowsFromExtractionResult(result) {
 
 export function extractHeadersAndSample(rows) {
   if (!Array.isArray(rows) || rows.length === 0) {
-    return { headers: [], sampleRow: {}, rowCount: 0 };
+    return { headers: [], normalizedHeaders: [], sampleRow: {}, rowCount: 0 };
   }
 
   const objectRows = rows.filter(row => row && typeof row === 'object' && !Array.isArray(row));
   if (objectRows.length > 0) {
-    const seen = new Set();
+    const seenRaw = new Set();
     const headers = [];
+    const normalizedHeaders = [];
     objectRows.forEach(row => {
       Object.keys(row).forEach((key) => {
-        const normalized = normalizeHeader(key);
-        if (!normalized || seen.has(normalized)) return;
-        seen.add(normalized);
-        headers.push(normalized);
+        const rawHeader = String(key);
+        const normalized = normalizeHeader(rawHeader);
+        if (!normalized || seenRaw.has(rawHeader)) return;
+        seenRaw.add(rawHeader);
+        headers.push(rawHeader);
+        normalizedHeaders.push(normalized);
       });
     });
 
     const firstRow = objectRows[0] || {};
     const sampleRow = {};
     headers.forEach((header) => {
-      const sourceKey = Object.keys(firstRow).find(k => normalizeHeader(k) === header);
-      if (sourceKey != null) sampleRow[header] = firstRow[sourceKey];
+      if (Object.prototype.hasOwnProperty.call(firstRow, header)) {
+        sampleRow[header] = firstRow[header];
+      }
     });
 
-    return { headers, sampleRow, rowCount: objectRows.length };
+    return { headers, normalizedHeaders, sampleRow, rowCount: objectRows.length };
   }
 
   const firstRow = rows[0];
   if (!Array.isArray(firstRow)) {
-    return { headers: [], sampleRow: {}, rowCount: 0 };
+    return { headers: [], normalizedHeaders: [], sampleRow: {}, rowCount: 0 };
   }
 
-  const headers = firstRow.map(normalizeHeader).filter(Boolean);
+  const headerEntries = firstRow.reduce((acc, header) => {
+    const rawHeader = String(header ?? '');
+    const normalized = normalizeHeader(rawHeader);
+    if (!normalized) return acc;
+    acc.push({ rawHeader, normalized });
+    return acc;
+  }, []);
+  const headers = headerEntries.map(({ rawHeader }) => rawHeader);
+  const normalizedHeaders = headerEntries.map(({ normalized }) => normalized);
   const sampleValues = Array.isArray(rows[1]) ? rows[1] : [];
   const sampleRow = Object.fromEntries(headers.map((header, index) => [header, sampleValues[index]]));
 
-  return { headers, sampleRow, rowCount: Math.max(rows.length - 1, 0) };
+  return { headers, normalizedHeaders, sampleRow, rowCount: Math.max(rows.length - 1, 0) };
 }
 
 function splitCsvLine(line, delimiter) {
