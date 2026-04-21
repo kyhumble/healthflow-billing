@@ -33,6 +33,24 @@ test('extracts headers and sample row from extraction result rows', () => {
   assert.equal(parsed.rowCount, 1);
 });
 
+test('unwraps nested extraction result rows payloads', () => {
+  const rows = getRowsFromExtractionResult({
+    rows: [
+      {
+        rows: [
+          { ' Patient Name ': 'Jane Doe', DOS: '2026-01-01' },
+          { ' Patient Name ': 'John Smith', DOS: '2026-01-02' },
+        ],
+      },
+    ],
+  });
+
+  assert.equal(rows.length, 2);
+  const parsed = extractHeadersAndSample(rows);
+  assert.deepEqual(parsed.headers, ['Patient Name', 'DOS']);
+  assert.equal(parsed.rowCount, 2);
+});
+
 test('returns user-facing error for empty file upload', () => {
   const result = validateImportFile({ name: 'claims.csv', size: 0 });
   assert.equal(result.valid, false);
