@@ -28,28 +28,31 @@ export default function ColumnMapper({ importRecord, onMapped }) {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are given a spreadsheet file at this URL: ${importRecord.file_url}
-Read the file and return:
-1. "headers": an array of ALL column header names exactly as they appear in the first row
-2. "sample_row": an object mapping each header to its value from the FIRST data row
-3. "row_count": total number of data rows (not counting the header row)
-
-Be thorough — include every column even if it looks empty or unusual.`,
-        file_urls: [importRecord.file_url],
-        response_json_schema: {
+      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+        file_url: importRecord.file_url,
+        json_schema: {
           type: 'object',
           properties: {
-            headers: { type: 'array', items: { type: 'string' } },
-            sample_row: { type: 'object' },
-            row_count: { type: 'number' },
+            headers: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'List of ALL column header names from the first row of the spreadsheet, exactly as written'
+            },
+            sample_row: {
+              type: 'object',
+              description: 'An object where each key is a header name and value is the cell value from the first data row'
+            },
+            row_count: {
+              type: 'number',
+              description: 'Total number of data rows, not counting the header row'
+            },
           },
         },
       });
-      if (result?.headers?.length) {
-        setHeaders(result.headers);
-        setSampleRow(result.sample_row || {});
-        await base44.entities.Import.update(importRecord.id, { row_count: result.row_count || 0 });
+      if (result.status === 'success' && result.output?.headers?.length) {
+        setHeaders(result.output.headers);
+        setSampleRow(result.output.sample_row || {});
+        await base44.entities.Import.update(importRecord.id, { row_count: result.output.row_count || 0 });
       }
       setLoading(false);
     })();
