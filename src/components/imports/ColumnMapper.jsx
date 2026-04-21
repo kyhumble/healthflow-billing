@@ -28,21 +28,28 @@ export default function ColumnMapper({ importRecord, onMapped }) {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url: importRecord.file_url,
-        json_schema: {
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are given a spreadsheet file at this URL: ${importRecord.file_url}
+Read the file and return:
+1. "headers": an array of ALL column header names exactly as they appear in the first row
+2. "sample_row": an object mapping each header to its value from the FIRST data row
+3. "row_count": total number of data rows (not counting the header row)
+
+Be thorough — include every column even if it looks empty or unusual.`,
+        file_urls: [importRecord.file_url],
+        response_json_schema: {
           type: 'object',
           properties: {
-            headers: { type: 'array', items: { type: 'string' }, description: 'All column header names' },
-            sample_row: { type: 'object', description: 'First data row as header→value pairs' },
-            row_count: { type: 'number', description: 'Approximate number of data rows' },
+            headers: { type: 'array', items: { type: 'string' } },
+            sample_row: { type: 'object' },
+            row_count: { type: 'number' },
           },
         },
       });
-      if (result.status === 'success' && result.output) {
-        setHeaders(result.output.headers || []);
-        setSampleRow(result.output.sample_row || {});
-        await base44.entities.Import.update(importRecord.id, { row_count: result.output.row_count || 0 });
+      if (result?.headers?.length) {
+        setHeaders(result.headers);
+        setSampleRow(result.sample_row || {});
+        await base44.entities.Import.update(importRecord.id, { row_count: result.row_count || 0 });
       }
       setLoading(false);
     })();
@@ -77,11 +84,16 @@ export default function ColumnMapper({ importRecord, onMapped }) {
   const autoMap = async () => {
     setAutoMapping(true);
     const result = await base44.integrations.Core.InvokeLLM({
-      prompt: `Map these spreadsheet column headers to canonical billing field keys.
-Headers: ${JSON.stringify(headers)}
-Sample values: ${JSON.stringify(sampleRow)}
-Canonical fields (key: label): ${CANONICAL_FIELDS.map(f => `${f.key}: ${f.label}`).join(', ')}
-Return a mapping object where keys are canonical field keys and values are the matching source header name. Only include confident matches.`,
+      prompt: `Map these spreadsheet column headers to canonical healthcare billing field keys.
+Source headers: ${JSON.stringify(headers)}
+Sample values from first row: ${JSON.stringify(sampleRow)}
+Canonical fields (key → label): ${CANONICAL_FIELDS.map(f => `${f.key} → "${f.label}"`).join(', ')}
+
+Rules:
+- Return a JSON object where keys are canonical field keys and values are the EXACT source header string
+- Only include matches you are confident about
+- Use fuzzy/semantic matching (e.g. "Pt Name" → patient_name, "DOS" → dos, "Bal" → balance)
+- Do not invent headers that aren't in the source list`,
       response_json_schema: {
         type: 'object',
         properties: {
@@ -91,7 +103,6 @@ Return a mapping object where keys are canonical field keys and values are the m
     });
     setAutoMapping(false);
     if (result?.mapping) {
-      // Validate that mapped header values actually exist
       const valid = Object.fromEntries(
         Object.entries(result.mapping).filter(([, v]) => headers.includes(v))
       );
