@@ -28,6 +28,23 @@ VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app
 
 Run the app: `npm run dev`
 
+Run tests: `npm test`
+
+## Import/upload configuration
+
+The upload + column-mapping flow uses:
+
+- `base44.integrations.Core.UploadFile` to store the uploaded CSV/XLSX/XLS file.
+- `base44.integrations.Core.ExtractDataFromUploadedFile` to extract rows/columns for mapping.
+- `Import` entity records (`file_url`, `file_type`, `row_count`, `column_mapping`) to drive the wizard.
+
+Required environment values:
+
+- `VITE_BASE44_APP_ID`
+- `VITE_BASE44_APP_BASE_URL`
+
+No additional feature flags are required for column detection.
+
 **Publish your changes**
 
 Open [Base44.com](http://Base44.com) and click on Publish.

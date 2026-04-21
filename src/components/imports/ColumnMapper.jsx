@@ -3,9 +3,10 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CANONICAL_FIELDS } from '@/lib/constants';
-import { Loader2, Wand2, ChevronRight, CheckCircle2, XCircle, AlertTriangle, RotateCcw, Hash, Type, Calendar } from 'lucide-react';
+import { Loader2, Wand2, ChevronRight, CheckCircle2, XCircle, RotateCcw, Hash, Type, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { extractCsvHeadersFromText, extractHeadersAndSample, getRowsFromExtractionResult } from '@/lib/importFileUtils';
 
 const REQUIRED = ['patient_name'];
 const RECOMMENDED = ['dos', 'payer_name', 'balance', 'status', 'claim_number'];
@@ -24,31 +25,48 @@ export default function ColumnMapper({ importRecord, onMapped }) {
   const [autoMapping, setAutoMapping] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState(null); // currently selected source header
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      // Extract the first few rows — use the keys of the returned objects as headers
-      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url: importRecord.file_url,
-        json_schema: {
-          type: 'object',
-          properties: {
-            rows: {
-              type: 'array',
-              description: 'Extract ALL rows from the spreadsheet. Each row should be an object where keys are the EXACT column header names from the file and values are the cell contents. Include every column.',
-              items: { type: 'object' },
+      setLoadError('');
+      try {
+        // Extract the first few rows — use the keys of the returned objects as headers
+        const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+          file_url: importRecord.file_url,
+          json_schema: {
+            type: 'object',
+            properties: {
+              rows: {
+                type: 'array',
+                description: 'Extract ALL rows from the spreadsheet. Each row should be an object where keys are the EXACT column header names from the file and values are the cell contents. Include every column.',
+                items: { type: 'object' },
+              },
             },
           },
-        },
-      });
-      if (result.status === 'success' && result.output?.rows?.length) {
-        const allRows = result.output.rows;
-        // Collect all unique keys across rows (some rows may have sparse columns)
-        const allKeys = [...new Set(allRows.flatMap(r => Object.keys(r)))].filter(k => k && k.trim() !== '');
-        setHeaders(allKeys);
-        setSampleRow(allRows[0] || {});
-        await base44.entities.Import.update(importRecord.id, { row_count: allRows.length });
+        });
+        const parsed = extractHeadersAndSample(getRowsFromExtractionResult(result));
+
+        if (!parsed.headers.length && importRecord.file_type === 'csv') {
+          const response = await fetch(importRecord.file_url);
+          const csvText = await response.text();
+          const csvHeaders = extractCsvHeadersFromText(csvText);
+          parsed.headers = csvHeaders;
+          parsed.sampleRow = {};
+        }
+
+        if (!parsed.headers.length) {
+          setLoadError('No column headers were detected. Please upload a file with a header row.');
+        }
+
+        setHeaders(parsed.headers);
+        setSampleRow(parsed.sampleRow);
+        if (parsed.rowCount > 0) {
+          await base44.entities.Import.update(importRecord.id, { row_count: parsed.rowCount });
+        }
+      } catch (err) {
+        setLoadError(err?.message || 'We could not read columns from this file. Please re-upload and try again.');
       }
       setLoading(false);
     })();
@@ -154,6 +172,13 @@ Rules:
           </Button>
         </div>
       </div>
+
+      {loadError && (
+        <div className="flex items-center gap-2 text-destructive text-sm bg-destructive/5 border border-destructive/20 rounded-lg px-3 py-2">
+          <XCircle className="w-4 h-4 flex-shrink-0" />
+          {loadError}
+        </div>
+      )}
 
       {/* Main mapping canvas */}
       <div className="grid grid-cols-[1fr_1fr] gap-4 border rounded-xl overflow-hidden bg-card">

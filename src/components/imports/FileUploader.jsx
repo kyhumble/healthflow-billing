@@ -3,8 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Upload, FileSpreadsheet, X, CheckCircle2, AlertCircle, Loader2, CloudUpload } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const ACCEPTED = ['csv', 'xlsx', 'xls'];
+import { getFileExtension, validateImportFile } from '@/lib/importFileUtils';
 
 function formatBytes(bytes) {
   if (bytes < 1024) return bytes + ' B';
@@ -21,13 +20,9 @@ export default function FileUploader({ onUploaded }) {
   const fileRef = useRef(null);
 
   const validate = (f) => {
-    const ext = f.name.split('.').pop().toLowerCase();
-    if (!ACCEPTED.includes(ext)) {
-      setError('Only CSV or Excel (.xlsx, .xls) files are supported.');
-      return false;
-    }
-    setError('');
-    return true;
+    const result = validateImportFile(f);
+    setError(result.error);
+    return result.valid;
   };
 
   const selectFile = (f) => {
@@ -53,20 +48,25 @@ export default function FileUploader({ onUploaded }) {
     if (!file) return;
     setUploading(true);
     setError('');
-    const ext = file.name.split('.').pop().toLowerCase();
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    const importRecord = await base44.entities.Import.create({
-      file_name: file.name,
-      file_url,
-      file_type: ext === 'xls' ? 'xlsx' : ext,
-      status: 'uploaded',
-    });
-    setUploading(false);
-    setDone(true);
-    setTimeout(() => onUploaded(importRecord), 600);
+    try {
+      const ext = getFileExtension(file.name);
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const importRecord = await base44.entities.Import.create({
+        file_name: file.name,
+        file_url,
+        file_type: ext === 'xls' ? 'xlsx' : ext,
+        status: 'uploaded',
+      });
+      setDone(true);
+      setTimeout(() => onUploaded(importRecord), 600);
+    } catch (err) {
+      setError(err?.message || 'Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const ext = file?.name.split('.').pop().toLowerCase();
+  const ext = getFileExtension(file?.name);
   const isExcel = ext === 'xlsx' || ext === 'xls';
 
   return (

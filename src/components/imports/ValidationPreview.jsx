@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Loader2, ChevronRight, ArrowLeft, CheckCircle2,
   AlertTriangle, XCircle, Info, ShieldAlert
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getRowsFromExtractionResult } from '@/lib/importFileUtils';
 
 // --- Validation rules ---
 // Each rule: { field, label, severity: 'error'|'warning', test: (value, row) => string|null }
@@ -137,8 +137,8 @@ export default function ValidationPreview({ importRecord, onBack, onValidated })
           },
         },
       });
-      if (result.status === 'success' && result.output?.rows) {
-        const extracted = result.output.rows;
+      const extracted = getRowsFromExtractionResult(result);
+      if (extracted.length) {
         setRows(extracted);
         setIssues(runValidation(extracted));
       }
