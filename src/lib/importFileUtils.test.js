@@ -51,6 +51,28 @@ test('unwraps nested extraction result rows payloads', () => {
   assert.equal(parsed.rowCount, 2);
 });
 
+test('flattens multiple nested extraction result row wrappers', () => {
+  const rows = getRowsFromExtractionResult({
+    rows: [
+      {
+        rows: [{ ' Patient Name ': 'Jane Doe', DOS: '2026-01-01' }],
+      },
+      {
+        rows: [{ ' Patient Name ': 'John Smith', DOS: '2026-01-02' }],
+      },
+    ],
+  });
+
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows, [
+    { ' Patient Name ': 'Jane Doe', DOS: '2026-01-01' },
+    { ' Patient Name ': 'John Smith', DOS: '2026-01-02' },
+  ]);
+
+  const parsed = extractHeadersAndSample(rows);
+  assert.deepEqual(parsed.headers, ['Patient Name', 'DOS']);
+  assert.equal(parsed.rowCount, 2);
+});
 test('returns user-facing error for empty file upload', () => {
   const result = validateImportFile({ name: 'claims.csv', size: 0 });
   assert.equal(result.valid, false);
