@@ -50,6 +50,11 @@ export default function ColumnMapper({ importRecord, onMapped }) {
 
         if (!parsed.headers.length && importRecord.file_type === 'csv') {
           const response = await fetch(importRecord.file_url);
+          if (!response.ok) {
+            throw new Error(
+              `We could not download the CSV file (${response.status}${response.statusText ? ` ${response.statusText}` : ''}). Please try re-uploading the file.`
+            );
+          }
           const csvText = await response.text();
           const csvHeaders = extractCsvHeadersFromText(csvText);
           parsed.headers = csvHeaders;
