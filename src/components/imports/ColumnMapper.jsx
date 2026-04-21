@@ -28,31 +28,27 @@ export default function ColumnMapper({ importRecord, onMapped }) {
   useEffect(() => {
     (async () => {
       setLoading(true);
+      // Extract the first few rows — use the keys of the returned objects as headers
       const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
         file_url: importRecord.file_url,
         json_schema: {
           type: 'object',
           properties: {
-            headers: {
+            rows: {
               type: 'array',
-              items: { type: 'string' },
-              description: 'List of ALL column header names from the first row of the spreadsheet, exactly as written'
-            },
-            sample_row: {
-              type: 'object',
-              description: 'An object where each key is a header name and value is the cell value from the first data row'
-            },
-            row_count: {
-              type: 'number',
-              description: 'Total number of data rows, not counting the header row'
+              description: 'Extract ALL rows from the spreadsheet. Each row should be an object where keys are the EXACT column header names from the file and values are the cell contents. Include every column.',
+              items: { type: 'object' },
             },
           },
         },
       });
-      if (result.status === 'success' && result.output?.headers?.length) {
-        setHeaders(result.output.headers);
-        setSampleRow(result.output.sample_row || {});
-        await base44.entities.Import.update(importRecord.id, { row_count: result.output.row_count || 0 });
+      if (result.status === 'success' && result.output?.rows?.length) {
+        const allRows = result.output.rows;
+        // Collect all unique keys across rows (some rows may have sparse columns)
+        const allKeys = [...new Set(allRows.flatMap(r => Object.keys(r)))].filter(k => k && k.trim() !== '');
+        setHeaders(allKeys);
+        setSampleRow(allRows[0] || {});
+        await base44.entities.Import.update(importRecord.id, { row_count: allRows.length });
       }
       setLoading(false);
     })();
