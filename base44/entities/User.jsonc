@@ -23,5 +23,9 @@
       "type": "string",
       "description": "Contact phone number"
     }
-  }
+  },
+  "required": [
+    "department",
+    "phone"
+  ]
 }
